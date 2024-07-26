@@ -71,8 +71,8 @@ interval = P.from_string(s) # read the string
 interval # [0,1), back to portion object
 ```
 
-Okay, let's start to talk about how to design the probe for disease monitoring. Here we use pan-cancer as the exmaple.  
+Okay, let's start to design the probe for disease monitoring. Here we use pan-cancer as the exmaple.  
 The first thing is to find out the regions we should monitor.  
 Data we need:  
-1. Known conductive regions
-2. Your in-house regions
+1. Known conductive regions, from reference or consensus
+2. Your in-house regions, from your experience
