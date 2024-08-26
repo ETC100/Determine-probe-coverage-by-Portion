@@ -74,5 +74,35 @@ interval # [0,1), back to portion object
 Okay, let's start to design the probe for disease monitoring. Here we use pan-cancer as the exmaple.  
 The first thing is to find out the regions we should monitor.  
 Data we need:  
-1. Known conductive regions, from reference or consensus
-2. Your in-house regions, from your experience
+1. Known conductive regions, from reference or disease consensus (Fixed data)
+2. Your in-house regions, from your experience (Candidate data)
+
+# Step1 Read the NCBI
+```python
+'''
+1	11873	12227	+|DDX11L1|R1|EX1|NR_046018.2|Y|UTR
+1	12227	12612	+|DDX11L1|IVS|IVS1|NR_046018.2|Y|IVS
+1	12612	12721	+|DDX11L1|R2|EX2|NR_046018.2|Y|UTR
+1	12721	13220	+|DDX11L1|IVS|IVS2|NR_046018.2|Y|IVS
+1	13220	14409	+|DDX11L1|R3E|EX3|NR_046018.2|Y|UTR
+'''
+ncbi_anno_file_in = open()
+for line in ncbi_anno_file_in:
+		line = line.strip()
+		if not line or line.startswith("#"):
+			continue
+		gene_annotation = line.split("\t")[3]
+		#select CDS
+		if gene_annotation.split("|")[4] in wes_transcript_list and pattern.search(gene_annotation.split("|")[3]) and gene_annotation.split("|")[6] == "CDS":
+			gene_info = gene_annotation.split("|")[1]+":"+gene_annotation.split("|")[4]
+			exon_info = gene_annotation.split("|")[1]+":"+gene_annotation.split("|")[4]+":"+gene_annotation.split("|")[3]
+			exon_start = int(line.split("\t")[1]) + 1
+			exon_end = int(line.split("\t")[2])
+			exon_chr = line.split("\t")[0]
+			if gene_info not in WES_All_Gene_Exon:
+				WES_All_Gene_Exon[gene_info] = {}
+			WES_All_Gene_Exon[gene_info][exon_info] = [exon_start,exon_end,exon_chr]
+	ncbi_anno_file_in.close()
+```
+
+# Step2, read and initialize your own data, both fixed and candidate data
