@@ -109,7 +109,7 @@ for line in ncbi_anno_file_in:
 
 # How to extract probes for sole cancer type from pan-cancer probes?
 This is a problem given by my colleague， which is quite easy from the aspect of computer science.  
-If the patient coverage for pan-cancer probes is 99% (5 mutation for each patient) in test data, we can also extract a subset with as few as probes for sole cancer type with 99% coverage.  
+If the patient coverage for pan-cancer probes is 99% (5 mutation for each patient) in test data, we can also extract a subset with as few as probes for sole cancer type with 99% coverage.
 1. the first thing is to get the pan-cancer probe-patient coverage.
 ```bash
 bedtools -a pan-cancer.bed -b patient_mut.bed -wa -wb > probe_mut_patient.bed
