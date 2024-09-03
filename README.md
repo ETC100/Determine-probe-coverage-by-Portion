@@ -106,3 +106,121 @@ for line in ncbi_anno_file_in:
 ```
 
 # Step2, read and initialize your own data, both fixed and candidate data
+
+# How to extract probes for sole cancer type from pan-cancer probes?
+This is a problem given by my colleague， which is quite easy from the aspect of computer science.  
+If the patient coverage for pan-cancer probes is 99% (5 mutation for each patient) in test data, we can also extract a subset with as few as probes for sole cancer type with 99% coverage.  
+1. the first thing is to get the pan-cancer probe-patient coverage.
+```bash
+bedtools -a pan-cancer.bed -b patient_mut.bed -wa -wb > probe_mut_patient.bed
+```
+I recommend to name each probe and only remain the names of probes in the following analysis.  
+2. Sort the probes, find the best one to start. All the mutation count for patients are 0 now, so the probe covering the most patients is the best one. This rule works for at least 5 turns.  
+3. According to the patient-mutation, sort the probe again, because patients with 5 mutations covered have no priority temporarily.  
+4. Find the patients with relatively few mutation coaverage, although the have reached the coverage goals. Use more probes to cover them.   
+5. Add some meaningful probes back from pan-caner probes set again.  
+```python
+import sys
+import numpy as np
+import pandas as pd
+from collections import defaultdict
+
+
+def read_patients(file):
+    patient_mutation = pd.read_csv(file, names=["patient_name"])
+    patient_mutation["covered_mut"] = [frozenset() for _ in range(len(patient_mutation))]
+    patient_mut_count = np.zeros(len(patient_mutation))
+    patient_mutation["number"] = np.arange(len(patient_mutation))
+    return patient_mutation, patient_mut_count
+
+
+def read_mutation(file):
+    probe_mutation = pd.read_csv(file, names=["probe_name", "mutation"])
+    probe_mutation["patient_name"] = probe_mutation["mutation"].apply(lambda x: x.split(":")[0])
+    probe_mutation = probe_mutation.groupby('probe_name').agg({
+        'patient_name': lambda x: set(x),
+        'mutation': lambda x: set(x)
+    }).reset_index()
+    return probe_mutation
+
+
+def add_the_first(probe_mutation, patient_mutation, patient_mut_count):
+    probe_mutation['patient_num'] = probe_mutation['patient_name'].apply(len)
+    probe_mutation['mut_num'] = probe_mutation['mutation'].apply(len)
+
+    sorted_probe_mutation = (probe_mutation.sort_values(by=['patient_num', 'mut_num'], ascending=[False, False])
+                             .head(20000))
+    result_dict = defaultdict(set)
+
+    for index, row in sorted_probe_mutation.iterrows():
+        for mutation in row['mutation']:
+            patient = mutation.split(":")[0]
+            result_dict[patient].add(mutation)
+            present = set(patient_mutation.loc[patient_mutation['patient_name'] == patient, 'covered_mut'].values[0])
+            if mutation not in present and len(present) < 5:
+                present.add(mutation)
+                patient_mutation.loc[patient_mutation['patient_name'] == patient, 'covered_mut'] = frozenset(present)
+                patient_num = patient_mutation.loc[patient_mutation['patient_name'] == patient, 'number'].values[0]
+                patient_mut_count[patient_num] += 1
+
+    top_20000_probes = sorted_probe_mutation['probe_name']
+    remaining_probe_mutation = probe_mutation[~probe_mutation['probe_name'].isin(top_20000_probes)]
+
+    return remaining_probe_mutation, patient_mutation, patient_mut_count
+
+
+def add_the_best(probe_mutation, patient_mutation, patient_mut_count):
+    improvement = []
+    for index, row in probe_mutation.iterrows():
+        patient_mutation_cp = patient_mutation.copy()
+        patient_mut_count_cp = patient_mut_count.copy()
+        for mutation in row['mutation']:
+            patient = mutation.split(":")[0]
+            present = patient_mutation_cp.loc[patient_mutation_cp['patient_name'] == patient, 'covered_mut'].values[0]
+            if mutation not in present:
+                patient_num = patient_mutation_cp.loc[patient_mutation_cp['patient_name'] == patient, 'number'].values[0]
+                patient_mut_count_cp[patient_num] += 1
+        improvement.append(np.sum(patient_mut_count_cp - patient_mut_count))
+
+    probe_mutation["improvement"] = improvement
+    top_probe = probe_mutation.sort_values(by=["improvement"], ascending=[False]).head(1).iloc[0]
+    probe_name, mutation_set = top_probe["probe_name"], top_probe["mutation"]
+    probe_mutation = probe_mutation[probe_mutation["probe_name"] != probe_name]
+
+    for mutation in mutation_set:
+        patient = mutation.split(":")[0]
+        present = patient_mutation.loc[patient_mutation['patient_name'] == patient, 'covered_mut'].values[0]
+        if mutation not in present:
+            patient_num = patient_mutation.loc[patient_mutation['patient_name'] == patient, 'number'].values[0]
+            patient_mut_count[patient_num] += 1
+            updated_present = set(present)
+            updated_present.add(mutation)
+            patient_mutation.loc[patient_mutation['patient_name'] == patient, 'covered_mut'] = \
+                frozenset(updated_present)
+
+    return probe_mutation, patient_mutation, patient_mut_count
+
+
+def main():
+    patient_mutation, patient_mut_count = read_patients(sys.argv[1])
+    probe_mutation = read_mutation(sys.argv[2])
+    probe_mutation, patient_mutation, patient_mut_count = add_the_first(probe_mutation, patient_mutation,
+                                                                        patient_mut_count)
+
+    stop_ratio = np.count_nonzero(patient_mut_count >= 5) / len(patient_mut_count)
+    max_iter = 15000
+    times = 0
+    while stop_ratio <= 0.99:
+        if times >= max_iter:
+            break
+        probe_mutation, patient_mutation, patient_mut_count = add_the_best(probe_mutation, patient_mutation,
+                                                                           patient_mut_count)
+        stop_ratio = np.count_nonzero(patient_mut_count >= 5) / len(patient_mut_count)
+        times += 1
+
+    probe_mutation.drop(columns=["patient_name", "mutation"]).to_csv(sys.argv[3], index=False)
+
+
+if __name__ == "__main__":
+    main()
+```
