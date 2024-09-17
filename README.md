@@ -106,9 +106,17 @@ for line in ncbi_anno_file_in:
 ```
 
 # Step2, read and initialize your own data, both determined and candidate data
-Generally, there are two kinds of mutation data. Mutation on conductive cancer genes and mutation on other genes with unclear correlation with cancer.  
-1. As for the first class, we only need to join the mutation togther into an interval, with several tens externsion.
-2. As for the second class, 
+Generally, there are two kinds of mutation data. Mutation on conductive cancer genes and mutation on other genes with unclear correlation with cancer. The coding for this part is in "probe_design_by_portion.py".  
+1. As for the first class, we only need to join the mutation togther into determined interval, with several tens externsion.
+2. As for the second class, read the data and also join them as candidate interval, while cut all determined intervals out.
+
+# Step3, select candidate intervals and add them to your interval set.
+1. Calculate how many patients covered by the determined intervals, and start to calculate the contribution of candidate intervals to your patients.
+2. Reach the threshold, such as 99% patients with at least 5 mutations detected.
+
+# Step4, extend the interval and obtain the final probes.
+1. 3X method
+2. Superposition method
 
 # How to extract probes for sole cancer type from pan-cancer probes?
 This is a problem given by my colleague， which is quite easy from the aspect of computer science.  
