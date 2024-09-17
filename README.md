@@ -107,6 +107,8 @@ for line in ncbi_anno_file_in:
 
 # Step2, read and initialize your own data, both determined and candidate data
 Generally, there are two kinds of mutation data. Mutation on conductive cancer genes and mutation on other genes with unclear correlation with cancer. The coding for this part is in "probe_design_by_portion.py".
+1. As for the first class, we only need to join the mutation togther into determined interval, with several tens externsion.
+2. As for the second class, read the data and also join them as candidate interval, while cut all determined intervals out.
 ```python
 #data fomat: gene name\texon name\tinfo
 #info: patient_name:gene_name:transcript_name:exon_num:chrom:start:end:base:base:base_alt:aa_alt:clonal:is_synonymous:tissue:gene_name
@@ -120,8 +122,6 @@ KCTD15:NM_001129994.1	KCTD15:NM_001129994.1:EX6	CRUK0274:KCTD15:NM_001129994.1:E
 KCTD15:NM_001129994.1	KCTD15:NM_001129994.1:EX7	CRUK0060:KCTD15:NM_001129994.1:EX7:19:34303797:34303797:C:T:c.C796T:p.R266W:minor:nonsynonymous:lung:KCTD15:
 '''
 ```
-1. As for the first class, we only need to join the mutation togther into determined interval, with several tens externsion.
-2. As for the second class, read the data and also join them as candidate interval, while cut all determined intervals out.
 
 # Step3, select candidate intervals and add them to your interval set.
 1. Calculate how many patients covered by the determined intervals, and start to calculate the contribution of candidate intervals to your patients.
