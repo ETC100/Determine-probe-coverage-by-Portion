@@ -1,1 +1,1 @@
-Here is script for monitoring interval merge
+Here is script for monitoring interval selection
